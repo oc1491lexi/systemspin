@@ -296,6 +296,16 @@ async function gateTryUnlock(){
 </div>
 
 <script>
+/* Regenerate visibility: LAN always; public only with a valid-format signed token in ?r= */
+var REGEN_TOKEN = (new URLSearchParams(location.search).get('r') || '');
+var REGEN_EXP = 0;
+if (REGEN_TOKEN.indexOf('.') > 0) {
+  var parts = REGEN_TOKEN.split('.');
+  if (parts[0].slice(0, 3) === 'exp') {
+    var ts = parseInt(parts[0].slice(3), 10);
+    if (!isNaN(ts)) { REGEN_EXP = ts; if (ts * 1000 < Date.now()) REGEN_TOKEN = ''; }
+  } else { REGEN_TOKEN = ''; }
+}
 (function(){
   function isPrivateHost(h){
     h = (h || '').toLowerCase();
@@ -303,14 +313,25 @@ async function gateTryUnlock(){
     if (/^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
     return false;
   }
-  if (isPrivateHost(location.hostname)) { var b = document.getElementById('regenBtn'); if (b) b.style.display = ''; }
+  var show = isPrivateHost(location.hostname) || REGEN_TOKEN !== '';
+  var b = document.getElementById('regenBtn');
+  if (b) b.style.display = show ? '' : 'none';
 })();
-var REGEN_URL = ''; /* internal n8n webhook URL injected at build time; empty on public build */
+var REGEN_URL = ''; /* n8n trigger endpoint, injected at publish time (LAN or proxy) */
 async function regenWorkflow(){
   var btn = document.getElementById('regenBtn');
   btn.disabled = true; btn.textContent = '…regenerating';
-  try { if (REGEN_URL) await fetch(REGEN_URL, {method:'GET'}); } catch(e) {}
-  setTimeout(function(){ btn.disabled = false; btn.textContent = '\u21bb Regenerate'; }, 2500);
+  try {
+    if (!REGEN_URL) {
+      btn.textContent = 'Regeneration handled by the daily schedule';
+      setTimeout(function(){ btn.disabled = false; btn.textContent = '\u21bb Regenerate'; }, 2500);
+      return;
+    }
+    var u = REGEN_URL + (REGEN_URL.indexOf('?') > -1 ? '&' : '?') + 'r=' + encodeURIComponent(REGEN_TOKEN);
+    var resp = await fetch(u, {method: 'GET'});
+    btn.textContent = resp.ok ? '✓ Renewal started' : '✗ Renewal refused';
+  } catch(e) { btn.textContent = '✗ Renewal unavailable'; }
+  setTimeout(function(){ btn.disabled = false; btn.textContent = '\u21bb Regenerate'; }, 3500);
 }
 </script>
 <button id="scrollTopBtn" onclick="scrollToTop()" title="Back to top">&#9650;</button>
