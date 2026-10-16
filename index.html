@@ -480,15 +480,15 @@ function createChart(canvasId, chartData) {
         if (t) { t.closest('.table-wrap').scrollIntoView({behavior:'smooth'}); flash(t); }
       },
       plugins: {
-        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: '#475569', usePointStyle: true } },
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: themeChartConfig(themeIsDark()).legend, usePointStyle: true } },
         tooltip: { callbacks: { label: function(c){
           var d = c.dataset.durStr ? c.dataset.durStr[c.dataIndex] : '';
           return c.dataset.label + ': ' + (d || '(no data)');
         } } }
       },
       scales: {
-        x: { ticks: { color: '#94a3b8', maxRotation: 45, font: { size: 10 }, callback: function(v){ var l = this.getLabelForValue(v); return l && l.length === 10 ? l.substring(8,10)+'/'+l.substring(5,7) : l; } }, grid: { color: '#eef1f6' } },
-        y: { ticks: { color: '#94a3b8', precision: 0, callback: function(v){ return v + 'h'; } }, grid: { color: '#eef1f6' }, title: { display: true, text: 'Duration (hours)', color: '#94a3b8', font: { size: 11 } } }
+        x: { ticks: { color: themeChartConfig(themeIsDark()).ticks, maxRotation: 45, font: { size: 10 }, callback: function(v){ var l = this.getLabelForValue(v); return l && l.length === 10 ? l.substring(8,10)+'/'+l.substring(5,7) : l; } }, grid: { color: themeChartConfig(themeIsDark()).grid }, border: { color: themeChartConfig(themeIsDark()).border } },
+        y: { ticks: { color: themeChartConfig(themeIsDark()).ticks, precision: 0, callback: function(v){ return v + 'h'; } }, grid: { color: themeChartConfig(themeIsDark()).grid }, border: { color: themeChartConfig(themeIsDark()).border }, title: { display: true, text: 'Duration (hours)', color: themeChartConfig(themeIsDark()).title, font: { size: 11 } } }
       }
     }
   });
@@ -773,26 +773,16 @@ function themeChartConfig(dark){
   return { legend: dark ? '#94a3b8' : '#475569',
            ticks: dark ? '#94a3b8' : '#94a3b8',
            grid: dark ? '#2b3a52' : '#eef1f6',
-           title: dark ? '#94a3b8' : '#94a3b8' };
+           title: dark ? '#94a3b8' : '#94a3b8',
+           border: dark ? '#334155' : '#e2e8f0' };
 }
 function restyleCharts(){
-  var c = themeChartConfig(themeIsDark());
   if (typeof charts === 'undefined') return;
-  for (var id in charts){
-    var ch = charts[id];
-    var o = ch.options;
-    if (o.plugins && o.plugins.legend && o.plugins.legend.labels) o.plugins.legend.labels.color = c.legend;
-    if (o.scales){
-      for (var ax in o.scales){
-        var s = o.scales[ax];
-        if (s.ticks) s.ticks.color = c.ticks;
-        if (s.grid) s.grid.color = c.grid;
-        if (s.title) s.title.color = c.title;
-      }
-    }
-    ch.update();
-  }
+  for (var id in charts){ try { charts[id].destroy(); } catch(e){} }
+  charts = {};
+  if (typeof renderAllCharts === 'function') renderAllCharts();
 }
+
 function toggleTheme(){
   var next = themeIsDark() ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
