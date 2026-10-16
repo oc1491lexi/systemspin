@@ -363,7 +363,7 @@ if (REGEN_TOKEN.indexOf('.') > 0) {
   var b = document.getElementById('regenBtn');
   if (b) b.style.display = show ? '' : 'none';
 })();
-var REGEN_URL = ''; /* n8n trigger endpoint, injected at publish time (LAN or proxy) */
+var REGEN_URL = 'https://systemspin-regen.oc1491-lexi.workers.dev/regen'; /* Worker: HMAC-gated, rate-limited 1/10min */
 async function regenWorkflow(){
   var btn = document.getElementById('regenBtn');
   btn.disabled = true; btn.textContent = '…regenerating';
