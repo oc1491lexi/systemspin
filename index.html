@@ -249,7 +249,7 @@ async function gateTryUnlock(){
       </div>
     </nav>
     <div class="sidebar__foot">
-      <div style="font-size:12px;color:var(--fg-soft)">Generated 2026-10-16 11:46 MYT<br>System Spin Monitor</div>
+      <div style="font-size:12px;color:var(--fg-soft)">Generated 2026-10-16 14:31 MYT<br>System Spin Monitor</div>
     </div>
   </aside>
   <header class="topbar">
@@ -264,7 +264,7 @@ async function gateTryUnlock(){
 <section class="page active" id="page-main">
   <div class="page-header" style="margin-bottom:20px">
     <h1 style="font-size:22px">Dashboard</h1>
-    <p class="pagenote">Duration trends for MBOM and EBOM systems (2026-10-16 11:46 MYT)</p>
+    <p class="pagenote">Duration trends for MBOM and EBOM systems (2026-10-16 14:31 MYT)</p>
   </div>
   <div class="charts-row"><div class="chart-section">
   <h3><span class="dot" style="background:#2563eb"></span>Daily Spin — MBOM <span class="pill" style="margin-left:auto;font-size:10px">past 2-3 weeks</span></h3>
@@ -366,18 +366,35 @@ if (REGEN_TOKEN.indexOf('.') > 0) {
 var REGEN_URL = ''; /* n8n trigger endpoint, injected at publish time (LAN or proxy) */
 async function regenWorkflow(){
   var btn = document.getElementById('regenBtn');
-  btn.disabled = true; btn.textContent = '…regenerating';
+  var lbl = document.getElementById('regenStatus');
+  if (!lbl) { lbl = document.createElement('span'); lbl.id = 'regenStatus';
+    lbl.style.marginLeft = '8px'; lbl.style.fontSize = '12px';
+    btn.parentNode.appendChild(lbl); }
+  function status(t){ lbl.textContent = t; }
+  btn.disabled = true; btn.textContent = '\u21bb working…'; status('');
   try {
     if (!REGEN_URL) {
-      btn.textContent = 'Regeneration handled by the daily schedule';
+      status('Regeneration handled by the daily schedule');
       setTimeout(function(){ btn.disabled = false; btn.textContent = '\u21bb Regenerate'; }, 2500);
       return;
     }
     var u = REGEN_URL + (REGEN_URL.indexOf('?') > -1 ? '&' : '?') + 'r=' + encodeURIComponent(REGEN_TOKEN);
     var resp = await fetch(u, {method: 'GET'});
-    btn.textContent = resp.ok ? '✓ Renewal started' : '✗ Renewal refused';
-  } catch(e) { btn.textContent = '✗ Renewal unavailable'; }
-  setTimeout(function(){ btn.disabled = false; btn.textContent = '\u21bb Regenerate'; }, 3500);
+    var body = {};
+    try { body = await resp.json(); } catch(e) {}
+    if (resp.ok && body.ok) {
+      status('✓ Renewal started — page will refresh automatically in 90 s with fresh data');
+      setTimeout(function(){ location.reload(); }, 90000);
+    } else if (resp.status === 429) {
+      var w = Math.ceil((body.waitSeconds || 600) / 60);
+      status('⏳ Already renewed less than 10 min ago — try again in about ' + w + ' min');
+    } else if (body.error === 'expired link - ask the report owner for a fresh one') {
+      status('✗ Sharing link has expired — request a fresh one');
+    } else {
+      status('✗ Renewal refused (' + (body.error || ('HTTP ' + resp.status)) + ')');
+    }
+  } catch(e) { status('✗ Renewal unavailable'); }
+  setTimeout(function(){ btn.disabled = false; btn.textContent = '\u21bb Regenerate'; }, 4000);
 }
 </script>
 <button id="scrollTopBtn" onclick="scrollToTop()" title="Back to top">&#9650;</button>
